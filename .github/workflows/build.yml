@@ -44,6 +44,7 @@ jobs:
         
         sudo apt-get install -y build-essential ruby ruby-dev rubygems gcc make
         sudo apt-get build-dep -y ardour
+        sudo apt-get install libjpeg-dev
 
     - name: Install FPM (Package Builder)
       run: |
