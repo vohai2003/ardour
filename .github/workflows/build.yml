@@ -42,8 +42,28 @@ jobs:
         sudo add-apt-repository -y -s "deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc)-updates main universe restricted multiverse"
         sudo apt-get update
         
-        sudo apt-get install -y build-essential ruby ruby-dev rubygems gcc make
-        sudo apt-get build-dep -y ardour
+        sudo apt install -y build-essential git python3 pkg-config libasound2-dev libjack-jackd2-dev libglib2.0-dev libglibmm-2.4-dev libsndfile1-dev \
+        libcurl4-gnutls-dev \
+        libarchive-dev \
+        liblo-dev \
+        libtag1-dev \
+        vamp-plugin-sdk \
+        librubberband-dev \
+        libudev-dev \
+        libfftw3-dev \
+        libaubio-dev \
+        libxml2-dev \
+        liblrdf0-dev \
+        libsamplerate-dev \
+        lv2-dev \
+        libserd-dev \
+        libsord-dev \
+        libsratom-dev \
+        liblilv-dev \
+        libgtkmm-2.4-dev \
+        libpulse-dev \
+        libwebsockets-dev
+        
         sudo apt-get install libjpeg-dev
 
     - name: Install FPM (Package Builder)
