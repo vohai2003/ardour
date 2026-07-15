@@ -1,0 +1,94 @@
+name: Build and Package Ardour
+
+on:
+  push:
+    branches: [ main, master ]
+    tags: 
+    - "*"
+  pull_request:
+    branches: [ main, master ]
+  # This enables manual triggers
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package Version'
+        required: true
+        default: '9.7.0'
+      debug_build:
+        description: 'Configure with debug symbols?'
+        type: boolean
+        required: false
+        default: false
+        
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install Build Dependencies
+      run: |
+        sudo apt-get update
+        sudo add-apt-repository -y -s "deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc) main universe restricted multiverse"
+        sudo add-apt-repository -y -s "deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -sc)-updates main universe restricted multiverse"
+        sudo apt-get update
+        
+        sudo apt-get install -y build-essential ruby ruby-dev rubygems gcc make
+        sudo apt-get build-dep -y ardour
+
+    - name: Install FPM (Package Builder)
+      run: |
+        sudo gem install --no-document fpm
+
+    - name: Configure Ardour
+      # Uses the inputs from the manual trigger. If run automatically (on push/PR), 
+      # it defaults to the fallback values.
+      run: |
+        CONFIGURE_FLAGS="--prefix=/usr"
+        if [ "${{ github.event.inputs.debug_build }}" = "true" ]; then
+          CONFIGURE_FLAGS="$CONFIGURE_FLAGS --debug"
+        fi
+        ./waf configure $CONFIGURE_FLAGS
+
+    - name: Build Ardour
+      run: ./waf build -j$(nproc)
+
+    - name: Stage Installation to Temporary Directory
+      run: |
+        mkdir -p staging
+        DESTDIR=$(pwd)/staging ./waf install
+
+    - name: Package into .deb using FPM
+      # Dynamically sets the version using either your manual input or the default value
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        # Fallback to a default version if triggered by push/PR instead of manually
+        if [ -z "$VERSION" ]; then
+          VERSION="9.7.0"
+        fi
+        
+        fpm -s dir -t deb \
+          -n "custom-ardour" \
+          -v "$VERSION" \
+          --iteration "1" \
+          -C staging \
+          --description "Custom built Ardour DAW" \
+          --maintainer "Your Name <you@example.com>" \
+          --depends "libc6" \
+          --depends "libjack-jackd2-0" \
+          --depends "libasound2"
+
+    - name: Upload Debian Package as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ardour-deb-package
+        path: ./*.deb
