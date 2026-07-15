@@ -79,7 +79,7 @@ jobs:
         if [ "${{ github.event.inputs.debug_build }}" = "true" ]; then
           CONFIGURE_FLAGS="$CONFIGURE_FLAGS --debug"
         fi
-        ./waf configure $CONFIGURE_FLAGS
+        ./waf configure
 
     - name: Build Ardour
       run: ./waf build -j$(nproc)
