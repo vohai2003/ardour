@@ -101,7 +101,7 @@ jobs:
         
         fpm -s dir -t deb \
           -n "ardour" \
-          -v "$LATEST_TAG" \
+          -v "${{ steps.tag_getting.outputs.version }}" \
           --iteration "1" \
           -C staging \
           --description "Custom built Ardour DAW" \
@@ -112,7 +112,7 @@ jobs:
           
         fpm -s dir -t rpm \
           -n "ardour" \
-          -v "$LATEST_TAG" \
+          -v "${{ steps.tag_getting.outputs.version }}" \
           --iteration "1" \
           -C staging \
           --description "Custom built Ardour DAW" \
