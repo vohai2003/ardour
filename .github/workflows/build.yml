@@ -15,10 +15,16 @@ on:
         type: boolean
         required: false
         default: false
+      upload_release:
+        description: 'Upload the release?'
+        type: boolean
+        required: false
+        default: false
         
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions: write-all
 
     steps:
     - name: Checkout repository
@@ -32,10 +38,12 @@ jobs:
       with:
         python-version: '3.x'
     - name: Switch to Latest Tag
+      id: tag_getting
       run: |
         LATEST_TAG=$(git describe --tags --abbrev=0)
         echo "Checking out latest tag: $LATEST_TAG"
         git checkout $LATEST_TAG
+        echo "version=${LATEST_TAG}" >> $GITHUB_OUTPUT
 
     - name: Install Build Dependencies
       run: |
@@ -95,15 +103,10 @@ jobs:
     - name: Package into .deb using FPM
       # Dynamically sets the version using either your manual input or the default value
       run: |
-        VERSION="${{ github.event.inputs.version }}"
-        # Fallback to a default version if triggered by push/PR instead of manually
-        if [ -z "$VERSION" ]; then
-          VERSION=$LATEST_TAG
-        fi
         
         fpm -s dir -t deb \
           -n "ardour" \
-          -v "$VERSION" \
+          -v "$LATEST_TAG" \
           --iteration "1" \
           -C staging \
           --description "Custom built Ardour DAW" \
@@ -114,7 +117,7 @@ jobs:
           
         fpm -s dir -t rpm \
           -n "ardour" \
-          -v "$VERSION" \
+          -v "$LATEST_TAG" \
           --iteration "1" \
           -C staging \
           --description "Custom built Ardour DAW" \
@@ -135,3 +138,25 @@ jobs:
         name: ardour-rpm-package
         path: ./*.rpm
         archive: false 
+    - name: Create GitHub Release and Upload Deb Package
+      uses: softprops/action-gh-release@v2
+      if: ${{ github.event.inputs.upload_release == 'true' }}
+      with:
+        # The tag name to associate the release with (e.g., "9.7.0")
+        tag_name: ${{ steps.tag_getting.outputs.version }}
+        
+        # The title of the release
+        name: Release ${{ steps.tag_getting.outputs.version }}
+        
+        # Optional release notes/description
+        body: |
+          Automated compilation of upstream Ardour version ${{ steps.tag_getting.outputs.version }}.
+          Install with: `sudo dpkg -i custom-ardour_*.deb`
+          
+        # Path to the file(s) you want to upload. Supports glob patterns.
+        files: |
+          ./*.deb
+          ./*.rpm
+        
+        # Authenticates the release creation (built-in GitHub secret)
+        token: ${{ secrets.GITHUB_TOKEN }}
