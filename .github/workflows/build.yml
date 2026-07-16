@@ -35,6 +35,11 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.x'
+    - name: Switch to Latest Tag
+      run: |
+        LATEST_TAG=$(git describe --tags --abbrev=0)
+        echo "Checking out latest tag: $LATEST_TAG"
+        git checkout $LATEST_TAG
 
     - name: Install Build Dependencies
       run: |
@@ -80,7 +85,7 @@ jobs:
         if [ "${{ github.event.inputs.debug_build }}" = "true" ]; then
           CONFIGURE_FLAGS="$CONFIGURE_FLAGS --debug"
         fi
-        ./waf configure
+        ./waf configure $CONFIGURE_FLAGS
 
     - name: Build Ardour
       run: ./waf build -j$(nproc)
@@ -96,22 +101,23 @@ jobs:
         VERSION="${{ github.event.inputs.version }}"
         # Fallback to a default version if triggered by push/PR instead of manually
         if [ -z "$VERSION" ]; then
-          VERSION="9.7"
+          VERSION = $LATEST_TAG
         fi
         
         fpm -s dir -t deb \
-          -n "custom-ardour" \
+          -n "ardour" \
           -v "$VERSION" \
           --iteration "1" \
           -C staging \
           --description "Custom built Ardour DAW" \
-          --maintainer "Your Name <you@example.com>" \
+          --maintainer "vophanphuochai2003 <vophanphuochai2003@gmail.com>" \
           --depends "libc6" \
           --depends "libjack-jackd2-0" \
           --depends "libasound2"
 
     - name: Upload Debian Package as Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ardour-deb-package
         path: ./*.deb
+        archive: false 
