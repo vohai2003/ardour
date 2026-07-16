@@ -71,7 +71,8 @@ jobs:
         libpulse-dev \
         libwebsockets-dev
         
-        sudo apt-get install libjpeg-dev
+        sudo apt-get install -y libjpeg-dev
+        sudo apt-get install -y alien
 
     - name: Install FPM (Package Builder)
       run: |
@@ -101,7 +102,7 @@ jobs:
         VERSION="${{ github.event.inputs.version }}"
         # Fallback to a default version if triggered by push/PR instead of manually
         if [ -z "$VERSION" ]; then
-          VERSION = $LATEST_TAG
+          VERSION=$LATEST_TAG
         fi
         
         fpm -s dir -t deb \
@@ -114,10 +115,27 @@ jobs:
           --depends "libc6" \
           --depends "libjack-jackd2-0" \
           --depends "libasound2"
+          
+        fpm -s dir -t rpm \
+          -n "ardour" \
+          -v "$VERSION" \
+          --iteration "1" \
+          -C staging \
+          --description "Custom built Ardour DAW" \
+          --maintainer "vophanphuochai2003 <vophanphuochai2003@gmail.com>" \
+          --depends "glibc6" \
+          --depends "jack-audio-connection-kit" \
+          --depends "alsa-lib"
 
     - name: Upload Debian Package as Artifact
       uses: actions/upload-artifact@v7
       with:
         name: ardour-deb-package
         path: ./*.deb
+        archive: false 
+    - name: Upload Red Hat Package as Artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: ardour-rpm-package
+        path: ./*.rpm
         archive: false 
