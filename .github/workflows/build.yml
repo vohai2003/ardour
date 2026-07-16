@@ -15,11 +15,6 @@ on:
         type: boolean
         required: false
         default: false
-      upload_release:
-        description: 'Upload the release?'
-        type: boolean
-        required: false
-        default: false
         
 jobs:
   build:
@@ -140,7 +135,7 @@ jobs:
         archive: false 
     - name: Create GitHub Release and Upload Deb Package
       uses: softprops/action-gh-release@v2
-      if: ${{ github.event.inputs.upload_release == 'true' }}
+      if: ${{ github.ref_type == 'tag' }}
       with:
         # The tag name to associate the release with (e.g., "9.7.0")
         tag_name: ${{ steps.tag_getting.outputs.version }}
