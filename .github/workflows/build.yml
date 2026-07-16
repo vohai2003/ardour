@@ -10,10 +10,6 @@ on:
   # This enables manual triggers
   workflow_dispatch:
     inputs:
-      version:
-        description: 'Package Version'
-        required: true
-        default: '9.7'
       debug_build:
         description: 'Configure with debug symbols?'
         type: boolean
