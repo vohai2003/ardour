@@ -1,0 +1,37 @@
+name: Sync Upstream Tags
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Runs automatically every hour
+  workflow_dispatch:   # Allows you to trigger this sync manually
+
+jobs:
+  sync-tags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Fork
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SYNC_PAT }} # Uses your PAT to allow triggering subsequent workflows
+          fetch-depth: 0                  # Fetch all history and tags
+
+      - name: Fetch and Sync Upstream Tags
+        run: |
+          # 1. Identify parent/upstream repository URL
+          UPSTREAM_URL=$(curl -s -H "Authorization: token ${{ secrets.SYNC_PAT }}" \
+            https://api.github.com/repos/${{ github.repository }} | jq -r '.parent.clone_url')
+          
+          if [ "$UPSTREAM_URL" = "null" ] || [ -z "$UPSTREAM_URL" ]; then
+            echo "Error: This repository does not appear to be a fork."
+            exit 1
+          fi
+          
+          echo "Upstream repository detected: $UPSTREAM_URL"
+          
+          # 2. Add upstream as a remote and fetch its tags
+          git remote add upstream "$UPSTREAM_URL"
+          git fetch upstream --tags
+          
+          # 3. Push new tags to your fork (origin)
+          # This only pushes tags that exist on upstream but do not exist on your fork yet
+          git push origin --tags
